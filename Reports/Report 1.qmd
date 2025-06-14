@@ -1,0 +1,76 @@
+---
+title: "Replicating Sustainable youth employment quality management: The impact of robotization in China by Fucheng Liang and Yi Liu"
+format: pdf
+author: Jesse Brandt, Alyssa Langmeyer, Veena Seshadri
+date: June 10, 2025
+---
+Load packages
+```{r}
+#| output: false
+library(tidyverse)
+```
+
+## Load the data
+```{r}
+
+
+robots <- read_csv("datas002.csv")
+```
+
+## Summary Statistics
+```{r}
+summary_tbl <- data.frame(variable = c("Quality", "Robot", "age", "gender", "marriage", "health", "lnGDP", "structure", "lnaverwage"))
+summary_tbl$N <- robots %>%
+  summarize(across(.cols = c(Quality, Robot, age, gender, marriage, health, lnGDP, structure, lnaverwage),list(length))) %>%
+  t() 
+summary_tbl$mean <- robots %>%
+  summarize(across(.cols = c(Quality, Robot, age, gender, marriage, health, lnGDP, structure, lnaverwage),list(mean))) %>%
+  t() 
+summary_tbl$sd <- robots %>%
+  summarize(across(.cols = c(Quality, Robot, age, gender, marriage, health, lnGDP, structure, lnaverwage),list(sd))) %>%
+  t() 
+summary_tbl$min <- robots %>%
+  summarize(across(.cols = c(Quality, Robot, age, gender, marriage, health, lnGDP, structure, lnaverwage),list(min))) %>%
+  t() 
+summary_tbl$max <- robots %>%
+  summarize(across(.cols = c(Quality, Robot, age, gender, marriage, health, lnGDP, structure, lnaverwage),list(max))) %>%
+  t() 
+summary_tbl
+
+
+```
+There is a problem with the response variable, Quality. The summary statistics for Quality do not match those in the paper (Table 2). The summary statistics for the predictor variables all match those in the paper.
+
+```{r}
+#| include: false
+robots %>%
+  summary()
+```
+Next steps might involve trying to construct the Quality variable according to the methods described in the paper.
+
+## Linear model
+These are my two attempts to recreate the linear models in Table 3. In both, the association between Robot and Quality is not significant.
+```{r}
+lm(data = robots, formula = Quality ~ Robot + age + gender + marriage + health + lnGDP
+   + structure + lnaverwage + as.factor(year) + as.factor(province)) %>%
+  summary()
+lm(data = robots, formula = Quality ~ Robot + age + gender + marriage + health + lnGDP
+   + structure + lnaverwage) %>%
+  summary()
+```
+
+## Creating Quality variable again
+Quality is defined in Table 2 as "Wages paid on an hourly basis," so we divide wage by workhours to get Quality.
+
+```{r}
+robots <- robots %>%
+  mutate(Quality2 = wage/workhours)
+mean(robots$Quality2)
+sd(robots$Quality2)
+min(robots$Quality2)
+max(robots$Quality2)
+```
+
+These results approximately match the Quality variable in the dataset, not the Quality variable in the paper.
+
+

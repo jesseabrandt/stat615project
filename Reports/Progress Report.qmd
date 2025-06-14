@@ -1,0 +1,89 @@
+---
+title: "Replicating Sustainable youth employment quality management: The impact of robotization in China by Fucheng Liang and Yi Liu"
+format: pdf
+author: Jesse Brandt, Alyssa Langmeyer, Veena Seshadri
+date: June 10, 2025
+---
+Load packages
+```{r}
+#| output: false
+library(tidyverse)
+library(readxl)
+library(readr)
+library(ExPanDaR)
+```
+
+## Load the data & Truncation
+```{r}
+robots <- read_excel("datas002.xlsx")
+trunc.robots <- treat_outliers(robots)
+```
+
+# Table 2: Summary Statistics.
+Before truncation:
+```{r}
+#select relevant columns
+selected_variables <- robots %>%
+  select(Quality, Robot, age, gender, marriage, health, lnGDP, structure, lnaverwage)
+#get summary statistics
+mapply(FUN = \(x) c(N = length(x), mean = mean(x), sd = sd(x), min = min(x), max = max(x)), 
+       selected_variables) %>%
+  t()
+
+```
+After truncation:
+```{r}
+#select relevant columns
+selected_variables <- trunc.robots %>%
+  select(Quality, Robot, age, gender, marriage, health, lnGDP, structure, lnaverwage)
+#get summary statistics
+mapply(FUN = \(x) c(N = length(x), mean = mean(x), sd = sd(x), min = min(x), max = max(x)), 
+       selected_variables) %>%
+  t()
+```
+
+
+```{r}
+#| include: false
+robots %>%
+  summary()
+```
+
+
+
+# Table 3: Linear model.
+Our results do not yet match theirs. Individual FE is unclear.
+```{r}
+model1 <- lm(data = trunc.robots, formula = Quality ~ Robot + age + gender + marriage + health + lnGDP
+   + structure + lnaverwage + as.factor(year) + as.factor(province))
+model2 <- lm(data = trunc.robots, formula = Quality ~ Robot + age + gender + marriage + health + lnGDP + structure + lnaverwage)
+model3 <- lm(data = trunc.robots, formula = Quality ~ Robot + age + gender + marriage + health + lnGDP
+   + structure + lnaverwage + as.factor(year) + as.factor(area))
+
+model.1.summary <- summary(model1)
+model.2.summary <- summary(model2)
+model.3.summary <- summary(model3)
+#model including year FE and region FE
+model.1.summary
+#model without year FE and region FE
+model.2.summary
+model.3.summary
+```
+
+
+```{r}
+#model 1 with province and year FE not shown
+model.1.summary$coefficients[1:9,1:4]
+model.3.summary$coefficients[1:9,1:4]
+```
+
+# Table 4: Results of endogeneity test and robustness test.
+
+
+# Table 5: Heterogeneity analysis results.
+
+# Table 6: Results of mechanism analysis.
+
+# Table 7: Results of regulatory effect analysis.
+
+# Table 8: Results of he effectiveness nalysis of employment promotion measures. 
