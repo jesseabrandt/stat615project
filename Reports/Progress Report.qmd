@@ -11,6 +11,7 @@ library(tidyverse)
 library(readxl)
 library(readr)
 library(ExPanDaR)
+library(lme4)
 ```
 
 ## Load the data (cleaned and truncated)
@@ -26,7 +27,7 @@ robots <- read_csv("../Data/robots_cleaned.csv")
 selected_variables <- robots %>%
   select(Quality, Robot, age, gender, marriage, health, lnGDP, structure, lnaverwage)
 #get summary statistics
-mapply(FUN = \(x) c(N = length(x), mean = mean(x), sd = sd(x), min = min(x), max = max(x)), 
+mapply(FUN = \(x) c(N = length(x), mean = mean(x), sd = sd(x), min = min(x), max = max(x)),
        selected_variables) %>%
   t()
 ```
@@ -42,22 +43,50 @@ robots %>%
 
 # Table 3: Linear model.
 Our results do not yet match theirs. Individual FE is unclear.
+
+
+Mixed effects model (column 1)
+```{r}
+lmer(data = trunc.robots, formula = Quality ~ Robot + age + gender + marriage + health + lnGDP
+     + structure + lnaverwage + as.factor(year)+ as.factor(province) + (1|id))
+```
+
+
+Fixed effects model (column 2)
+
 ```{r}
 model1 <- lm(data = robots, formula = Quality ~ Robot + age + gender + marriage + health + lnGDP
    + structure + lnaverwage + as.factor(year) + as.factor(province))
 model2 <- lm(data = robots, formula = Quality ~ Robot + age + gender + marriage + health + lnGDP + structure + lnaverwage)
-model3 <- lm(data = robots, formula = Quality ~ Robot + age + gender + marriage + health + lnGDP
-   + structure + lnaverwage + as.factor(year) + as.factor(area))
 
 model.1.summary <- summary(model1)
 model.2.summary <- summary(model2)
-model.3.summary <- summary(model3)
+
 #model including year FE and region FE
 model.1.summary
 #model without year FE and region FE
 model.2.summary
-model.3.summary
+
+#model including id - filtered to include only ids with more than one observation
+duplicate_ids <- trunc.robots %>%
+  group_by(id) %>%
+  mutate(count = length(id)) %>%
+  filter(count>1)
+
+fe_model3 <- lm(data = duplicate_ids, formula = Quality ~ Robot + age + gender + marriage + health + lnGDP
+                + structure + lnaverwage + as.factor(year) + as.factor(province) + as.factor(id))
+model.3.summary <- summary(fe_model3)
+model.3.summary$coefficients[1:9,1:4]
 ```
+
+
+Random effects model (column 3)
+Note: in the paper, column 3 is the same as column 1, but the text indicates that it should be the random effects model.
+```{r}
+lmer(data = trunc.robots, formula = Quality ~ Robot + age + gender + marriage + health + lnGDP
+     + structure + lnaverwage + (1|year) + (1|province) + (1|id))
+```
+
 
 
 ```{r}
