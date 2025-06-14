@@ -13,28 +13,17 @@ library(readr)
 library(ExPanDaR)
 ```
 
-## Load the data & Truncation
+## Load the data (cleaned and truncated)
+
 ```{r}
-robots <- read_excel("datas002.xlsx")
-trunc.robots <- treat_outliers(robots)
+robots <- read_csv("../Data/robots_cleaned.csv")
 ```
 
 # Table 2: Summary Statistics.
-Before truncation:
+
 ```{r}
 #select relevant columns
 selected_variables <- robots %>%
-  select(Quality, Robot, age, gender, marriage, health, lnGDP, structure, lnaverwage)
-#get summary statistics
-mapply(FUN = \(x) c(N = length(x), mean = mean(x), sd = sd(x), min = min(x), max = max(x)), 
-       selected_variables) %>%
-  t()
-
-```
-After truncation:
-```{r}
-#select relevant columns
-selected_variables <- trunc.robots %>%
   select(Quality, Robot, age, gender, marriage, health, lnGDP, structure, lnaverwage)
 #get summary statistics
 mapply(FUN = \(x) c(N = length(x), mean = mean(x), sd = sd(x), min = min(x), max = max(x)), 
@@ -54,10 +43,10 @@ robots %>%
 # Table 3: Linear model.
 Our results do not yet match theirs. Individual FE is unclear.
 ```{r}
-model1 <- lm(data = trunc.robots, formula = Quality ~ Robot + age + gender + marriage + health + lnGDP
+model1 <- lm(data = robots, formula = Quality ~ Robot + age + gender + marriage + health + lnGDP
    + structure + lnaverwage + as.factor(year) + as.factor(province))
-model2 <- lm(data = trunc.robots, formula = Quality ~ Robot + age + gender + marriage + health + lnGDP + structure + lnaverwage)
-model3 <- lm(data = trunc.robots, formula = Quality ~ Robot + age + gender + marriage + health + lnGDP
+model2 <- lm(data = robots, formula = Quality ~ Robot + age + gender + marriage + health + lnGDP + structure + lnaverwage)
+model3 <- lm(data = robots, formula = Quality ~ Robot + age + gender + marriage + health + lnGDP
    + structure + lnaverwage + as.factor(year) + as.factor(area))
 
 model.1.summary <- summary(model1)
