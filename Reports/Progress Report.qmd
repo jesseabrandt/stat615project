@@ -172,4 +172,52 @@ tbl
 
 # Table 7: Results of regulatory effect analysis.
 
+```{r}
+model.6.1 <- lm.cluster(data = robots, formula = Quality ~ Robot + Robot*reg_edu  + age + 
+                          gender + marriage + health + lnGDP + structure + lnaverwage + 
+                          as.factor(year) + as.factor(province), cluster = "id")
+summary(model.6.1)
+
+model.6.2 <- lm.cluster(data = robots, formula = Quality ~ Robot + Robot*skill  + age + 
+                          gender + marriage + health + lnGDP + structure + lnaverwage + 
+                          as.factor(year) + as.factor(province), cluster = "id")
+summary(model.6.2)
+
+model.6.3 <- lm.cluster(data = robots, formula = Quality ~ Robot + Robot*entrepreneurship  + age + 
+                          gender + marriage + health + lnGDP + structure + lnaverwage + 
+                          as.factor(year) + as.factor(province), cluster = "id")
+summary(model.6.3)
+```
+
 # Table 8: Results of he effectiveness nalysis of employment promotion measures. 
+
+```{r}
+
+primary <- filter(robots, education == 0 | education ==1)
+middle <- filter(robots, education == 2)
+university <- filter(robots, education ==3)
+
+
+fit_ed_model <- function(dataset){
+  model <- lm.cluster(data = dataset, formula = Quality ~ Robot + Robot*reg_edu + age + gender + marriage + health + lnGDP
+                      + structure + lnaverwage + as.factor(year) + as.factor(province),
+                      cluster = "id")
+  model_summary <- summary(model)
+  return(model)
+}
+
+fit_skill_model <- function(dataset){
+  model <- lm.cluster(data = dataset, formula = Quality ~ Robot + Robot*skill + age + gender + marriage + health + lnGDP
+                      + structure + lnaverwage + as.factor(year) + as.factor(province),
+                      cluster = "id")
+  model_summary <- summary(model)
+  return(model)
+}
+
+ed_models <- map(.f = fit_ed_model, .x = list(primary, middle, university))
+skill_models <-  map(.f = fit_skill_model, .x = list(primary, middle, university))
+
+
+
+```
+
