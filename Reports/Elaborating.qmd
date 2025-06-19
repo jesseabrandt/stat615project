@@ -1,0 +1,195 @@
+---
+title: "Elaborating on models"
+format: html
+---
+
+```{r}
+#| output: false
+library(tidyverse)
+library(ExPanDaR) # for winsorizing/truncating
+library(lme4) #for random effects
+library(miceadds) # for lm.cluster
+
+library(readxl)
+
+```
+
+# Initial steps
+
+```{r}
+#robots_cleaned.csv is obtained by running the file "R/clean_and_truncate.R"
+#only step is to treat outliers
+robots <- read_csv("../Data/robots_cleaned.csv")
+```
+
+## On treating outliers
+
+Their wording is somewhat unclear. Their 99% tail truncation seems to apply only to Quality. It also appears to be censoring rather than truncating the data.
+
+```{r}
+robots2 <- read_excel("../Data/pone.0298081.s002.xlsx")
+
+#
+robots2$quality_original <- robots$Quality
+robots2$quality_trunc <- treat_outliers(robots$Quality, truncate = TRUE)
+robots2$quality_censored <- treat_outliers(robots$Quality)
+
+robots2 <- robots2 %>% select(quality_censored, quality_trunc, quality_original)
+
+
+selected_variables <- robots2 %>%
+  select(quality_censored, quality_original, quality_trunc)
+#get summary statistics
+mapply(FUN = \(x) c(N = sum(!is.na(x)), mean = mean(x, na.rm =TRUE), 
+                    sd = sd(x, na.rm =TRUE), min = min(x, na.rm =TRUE), 
+                    max = max(x, na.rm =TRUE)),
+       selected_variables) %>%
+  t()
+
+
+```
+
+By censoring (professor's term) or winsorizing (package's term) the Quality variable, we were able to replicate their summary statistics.
+
+```{r}
+#select relevant columns
+selected_variables <- robots %>%
+  select(Quality, Robot, age, gender, marriage, health, lnGDP, structure, lnaverwage)
+#get summary statistics
+mapply(FUN = \(x) c(N = length(x), mean = mean(x), sd = sd(x), min = min(x), max = max(x)),
+       selected_variables) %>%
+  t()
+```
+
+# Base models
+
+2 main concepts here
+
+-   Random fixed and mixed effects models
+
+    -   We did all 3, they have the mixed effects model duplicated in columns 1 and 3
+    -   lme4::lmer (package::function)
+
+-   Robust standard error, clustered by individual
+
+    -   miceadds::lm.cluster
+
+They use robust standard error for all models. We only use it for the fixed effects models (difficult to combine two different methods).
+
+They determine with the Hausman test that the fixed effects model is best, so they use fixed effects for the rest of the paper. We do the same, but do not perform the Hausman test.
+
+# Tables 4 and 6
+
+We did not replicate these. They did several robustness tests including 2 stage linear regression and substituting several variables for table 4.
+
+For table 6, they used bootstrap.
+
+# Tables 5,7,8
+
+Table 5: heterogeneity
+
+```{r}
+#| output: false
+#Gender
+man <- filter(robots, gender == 1)
+woman <- filter(robots, gender ==0)
+
+#Education
+unique(robots$education)
+count(robots, education)
+690 + 4763 # 0 and 1 are primary
+# 2 is middle
+# 3 is university
+primary <- filter(robots, education == 0 | education ==1)
+middle <- filter(robots, education == 2)
+university <- filter(robots, education ==3)
+
+#Age groups
+age_1 <- filter(robots, age >= 17 & age <= 25)
+age_2 <- filter(robots, age >= 26 & age <= 35)
+
+# Regional employment
+large <- filter(robots, reg_labor > mean(reg_labor))
+small <- filter(robots, reg_labor <= mean(reg_labor))
+
+#temp
+
+
+fit_fe_model <- function(dataset){
+  model <- lm.cluster(data = dataset, formula = Quality ~ Robot + age + gender + marriage + health + lnGDP
+             + structure + lnaverwage + as.factor(year) + as.factor(province),
+             cluster = "id")
+  model_summary <- summary(model)
+  return(model_summary[2,1:4])
+}
+
+#fit_fe_model(large)
+tbl <- map(.x = list(man,woman,primary,middle,university,large,small), .f = fit_fe_model) %>%
+  data.frame()
+names(tbl) <- c("Man", "Woman", "Primary", "Middle", "University", "Large", "Small")
+
+rownames(tbl)[1] <- "Estimate (Robot)"
+
+
+```
+
+```{r}
+tbl
+```
+
+Table 7: Regulatory effect
+
+Modeled with interaction effects between policies and Robot variable.
+
+-   note to team members: I ran the models but did not format the tables to match
+
+```{r}
+model.7.1 <- lm.cluster(data = robots, formula = Quality ~ Robot + Robot*reg_edu  + age + 
+                          gender + marriage + health + lnGDP + structure + lnaverwage + 
+                          as.factor(year) + as.factor(province), cluster = "id")
+summary(model.7.1)
+
+model.7.2 <- lm.cluster(data = robots, formula = Quality ~ Robot + Robot*skill  + age + 
+                          gender + marriage + health + lnGDP + structure + lnaverwage + 
+                          as.factor(year) + as.factor(province), cluster = "id")
+summary(model.7.2)
+
+model.7.3 <- lm.cluster(data = robots, formula = Quality ~ Robot + Robot*entrepreneurship  + age + 
+                          gender + marriage + health + lnGDP + structure + lnaverwage + 
+                          as.factor(year) + as.factor(province), cluster = "id")
+summary(model.7.3)
+```
+
+Table 8: Effectiveness of employment promotion measures
+
+Also modeled with interaction effect between policies and Robot variable. They split the data by level of education.
+
+-   note to team members: I ran the models but did not format the tables to match
+
+```{r}
+primary <- filter(robots, education == 0 | education ==1)
+middle <- filter(robots, education == 2)
+university <- filter(robots, education ==3)
+
+
+fit_ed_model <- function(dataset){
+  model <- lm.cluster(data = dataset, formula = Quality ~ Robot + Robot*reg_edu + age + gender + marriage + health + lnGDP
+                      + structure + lnaverwage + as.factor(year) + as.factor(province),
+                      cluster = "id")
+  model_summary <- summary(model)
+  return(model)
+}
+
+fit_skill_model <- function(dataset){
+  model <- lm.cluster(data = dataset, formula = Quality ~ Robot + Robot*skill + age + gender + marriage + health + lnGDP
+                      + structure + lnaverwage + as.factor(year) + as.factor(province),
+                      cluster = "id")
+  model_summary <- summary(model)
+  return(model)
+}
+
+ed_models <- map(.f = fit_ed_model, .x = list(primary, middle, university))
+skill_models <-  map(.f = fit_skill_model, .x = list(primary, middle, university))
+
+
+```
