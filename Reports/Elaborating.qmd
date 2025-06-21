@@ -69,6 +69,9 @@ mapply(FUN = \(x) c(N = length(x), mean = mean(x), sd = sd(x), min = min(x), max
 
     -   We did all 3, they have the mixed effects model duplicated in columns 1 and 3
     -   lme4::lmer (package::function)
+    -   Random effects: for the region, individual, and year variables, we are interested in the variance rather than the coefficients. Uses Maximum Likelihood Estimation rather than OLS
+    -   Fixed effects are what we've been doing in class
+    -   I can probably elaborate verbally on why we don't do individual fixed effects for the model. It didn't quite match their results either, and it took 20+ minutes to run, and the model object was almost a gigabyte. Most individuals are only in there once, so it was a factor with about 13000 levels, creating about 13000 dummy variables, most of which correspond to only one observation.
 
 -   Robust standard error, clustered by individual
 
@@ -78,15 +81,45 @@ They use robust standard error for all models. We only use it for the fixed effe
 
 They determine with the Hausman test that the fixed effects model is best, so they use fixed effects for the rest of the paper. We do the same, but do not perform the Hausman test.
 
+## Mixed effects model (column 1)
+
+```{r}
+me_model <- lmer(data = robots, formula = Quality ~ Robot + age + gender + marriage + health + lnGDP
+     + structure + lnaverwage + as.factor(year)+ as.factor(province) + (1|id))
+summary(me_model)
+```
+
+## Fixed effects model (column 2)
+
+```{r}
+fe_model <- lm(data = robots, formula = Quality ~ Robot + age + gender + marriage + health + lnGDP
+                     + structure + lnaverwage + as.factor(year) + as.factor(province))
+fe_model <- lm.cluster(data = robots, formula = Quality ~ Robot + age + gender + marriage + health + lnGDP
+                     + structure + lnaverwage + as.factor(year) + as.factor(province), cluster = "id")
+summary(fe_model)
+
+```
+
+## Random effects model (column 3)
+
+Note: in the paper, column 3 is the same as column 1, but the text indicates that it should be the random effects model.
+
+```{r}
+re_model <- lmer(data = robots, formula = Quality ~ Robot + age + gender + marriage + health + lnGDP + structure + lnaverwage + (1|year) + (1|province) + (1|id))
+summary(re_model)
+```
+
 # Tables 4 and 6
 
-We did not replicate these. They did several robustness tests including 2 stage linear regression and substituting several variables for table 4.
+We did not replicate these.
+
+They did several robustness tests including 2 stage linear regression and substituting several variables for table 4.
 
 For table 6, they used bootstrap.
 
 # Tables 5,7,8
 
-Table 5: heterogeneity
+## Table 5: Heterogeneity
 
 ```{r}
 #| output: false
@@ -137,7 +170,7 @@ rownames(tbl)[1] <- "Estimate (Robot)"
 tbl
 ```
 
-Table 7: Regulatory effect
+## Table 7: Regulatory effect
 
 Modeled with interaction effects between policies and Robot variable.
 
@@ -160,7 +193,7 @@ model.7.3 <- lm.cluster(data = robots, formula = Quality ~ Robot + Robot*entrepr
 summary(model.7.3)
 ```
 
-Table 8: Effectiveness of employment promotion measures
+## Table 8: Effectiveness of employment promotion measures
 
 Also modeled with interaction effect between policies and Robot variable. They split the data by level of education.
 
