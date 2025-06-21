@@ -92,8 +92,6 @@ summary(me_model)
 ## Fixed effects model (column 2)
 
 ```{r}
-fe_model <- lm(data = robots, formula = Quality ~ Robot + age + gender + marriage + health + lnGDP
-                     + structure + lnaverwage + as.factor(year) + as.factor(province))
 fe_model <- lm.cluster(data = robots, formula = Quality ~ Robot + age + gender + marriage + health + lnGDP
                      + structure + lnaverwage + as.factor(year) + as.factor(province), cluster = "id")
 summary(fe_model)
