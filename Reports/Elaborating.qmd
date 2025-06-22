@@ -30,9 +30,9 @@ Their wording is somewhat unclear. Their 99% tail truncation seems to apply only
 robots2 <- read_excel("../Data/pone.0298081.s002.xlsx")
 
 #
-robots2$quality_original <- robots$Quality
-robots2$quality_trunc <- treat_outliers(robots$Quality, truncate = TRUE)
-robots2$quality_censored <- treat_outliers(robots$Quality)
+robots2$quality_original <- robots2$Quality
+robots2$quality_trunc <- treat_outliers(robots2$Quality, truncate = TRUE)
+robots2$quality_censored <- treat_outliers(robots2$Quality)
 
 robots2 <- robots2 %>% select(quality_censored, quality_trunc, quality_original)
 
